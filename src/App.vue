@@ -206,6 +206,14 @@ export default {
 
 		this.onResize()
 
+		window.addEventListener('beforeunload', () => {
+			console.info('Stop potential reconnects on unload')
+			const signaling = getSignalingSync()
+			if (signaling) {
+				signaling.prepareUnloading()
+			}
+		})
+
 		window.addEventListener('unload', () => {
 			console.info('Navigating away, leaving conversation')
 			if (this.token) {

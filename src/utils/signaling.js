@@ -152,6 +152,9 @@ Signaling.Base.prototype.disconnect = function() {
 	this.currentCallFlags = null
 }
 
+Signaling.Base.prototype.prepareUnloading = function() {
+}
+
 Signaling.Base.prototype.hasFeature = function(feature) {
 	return this.features && this.features[feature]
 }
@@ -503,6 +506,7 @@ function Standalone(settings, urls) {
 	this.initialReconnectIntervalMs = 1000
 	this.maxReconnectIntervalMs = 16000
 	this.reconnectIntervalMs = this.initialReconnectIntervalMs
+	this.preparingUnloading = false
 	this.joinedUsers = {}
 	this.rooms = []
 	this.connect()
@@ -514,6 +518,11 @@ Signaling.Standalone = Standalone
 
 Signaling.Standalone.prototype.reconnect = function() {
 	if (this.reconnectTimer) {
+		return
+	}
+
+	if (this.preparingUnloading) {
+		console.debug('Not reconnecting as we are preparing unload')
 		return
 	}
 
@@ -601,7 +610,12 @@ Signaling.Standalone.prototype.connect = function() {
 			this.signalingConnectionError.hideToast()
 			this.signalingConnectionError = null
 		}
-		this.reconnect()
+		if (this.socket) {
+			console.debug('Reconnecting socket as the connection was closed unexpected')
+			this.reconnect()
+		} else {
+			console.debug('Not reconnecting because the socket was closed by disconnect')
+		}
 	}.bind(this)
 	this.socket.onmessage = function(event) {
 		let data = event.data
@@ -669,12 +683,25 @@ Signaling.Standalone.prototype.sendBye = function() {
 }
 
 Signaling.Standalone.prototype.disconnect = function() {
+	if (this.reconnectTimer) {
+		window.clearTimeout(this.reconnectTimer)
+		this.reconnectTimer = null
+	}
 	this.sendBye()
 	if (this.socket) {
 		this.socket.close()
 		this.socket = null
 	}
 	Signaling.Base.prototype.disconnect.apply(this, arguments)
+}
+
+Signaling.Standalone.prototype.prepareUnloading = function() {
+	this.preparingUnloading = true
+	window.setTimeout(() => {
+		// If the user didn't finish unloading in the end
+		// we allow reconnecting again
+		this.preparingUnloading = false
+	}, 25000)
 }
 
 Signaling.Standalone.prototype.forceReconnect = function(newSession, flags) {
