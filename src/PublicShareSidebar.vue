@@ -57,6 +57,7 @@ import {
 import {
 	getSignaling,
 	signalingKill,
+	signalingPrepareUnload,
 } from './utils/webrtc/index'
 import browserCheck from './mixins/browserCheck'
 
@@ -118,6 +119,11 @@ export default {
 	},
 
 	beforeMount() {
+		window.addEventListener('beforeunload', () => {
+			console.info('Stop potential reconnects on unload')
+			signalingPrepareUnload()
+		})
+
 		window.addEventListener('unload', () => {
 			if (this.token) {
 				// We have to do this synchronously, because in unload and beforeunload

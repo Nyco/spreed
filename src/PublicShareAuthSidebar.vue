@@ -49,6 +49,7 @@ import {
 import {
 	getSignaling,
 	signalingKill,
+	signalingPrepareUnload,
 } from './utils/webrtc/index'
 import browserCheck from './mixins/browserCheck'
 
@@ -99,6 +100,11 @@ export default {
 	},
 
 	beforeMount() {
+		window.addEventListener('beforeunload', () => {
+			console.info('Stop potential reconnects on unload')
+			signalingPrepareUnload()
+		})
+
 		window.addEventListener('unload', () => {
 			console.info('Navigating away, leaving conversation')
 			if (this.token) {

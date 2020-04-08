@@ -53,6 +53,7 @@ import { PARTICIPANT } from './constants'
 import {
 	connectSignaling,
 	signalingKill,
+	signalingPrepareUnload,
 } from './utils/webrtc/index'
 import { emit } from '@nextcloud/event-bus'
 import browserCheck from './mixins/browserCheck'
@@ -209,6 +210,11 @@ export default {
 		document.addEventListener('visibilitychange', this.changeWindowVisibility)
 
 		this.onResize()
+
+		window.addEventListener('beforeunload', () => {
+			console.info('Stop potential reconnects on unload')
+			signalingPrepareUnload()
+		})
 
 		window.addEventListener('unload', () => {
 			console.info('Navigating away, leaving conversation')

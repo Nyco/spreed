@@ -59,6 +59,7 @@ import CancelableRequest from './utils/cancelableRequest'
 import {
 	getSignaling,
 	signalingKill,
+	signalingPrepareUnload,
 } from './utils/webrtc/index'
 import { getCurrentUser } from '@nextcloud/auth'
 import Axios from '@nextcloud/axios'
@@ -146,6 +147,11 @@ export default {
 
 	beforeMount() {
 		this.$store.dispatch('setCurrentUser', getCurrentUser())
+
+		window.addEventListener('beforeunload', () => {
+			console.info('Stop potential reconnects on unload')
+			signalingPrepareUnload()
+		})
 
 		window.addEventListener('unload', () => {
 			console.info('Navigating away, leaving conversation')

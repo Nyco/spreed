@@ -151,6 +151,9 @@ Signaling.Base.prototype.disconnect = function() {
 	this.currentCallFlags = null
 }
 
+Signaling.Base.prototype.prepareUnload = function() {
+}
+
 Signaling.Base.prototype.hasFeature = function(feature) {
 	return this.features && this.features[feature]
 }
@@ -516,6 +519,8 @@ function Standalone(settings, urls) {
 	this.initialReconnectIntervalMs = 1000
 	this.maxReconnectIntervalMs = 16000
 	this.reconnectIntervalMs = this.initialReconnectIntervalMs
+	this.preparingUnload = false
+	this.preparingUnloadTimeout = null
 	this.joinedUsers = {}
 	this.rooms = []
 	this.connect()
@@ -527,6 +532,11 @@ Signaling.Standalone = Standalone
 
 Signaling.Standalone.prototype.reconnect = function() {
 	if (this.reconnectTimer) {
+		return
+	}
+
+	if (this.preparingUnload) {
+		console.debug('Not reconnecting as we are preparing unload')
 		return
 	}
 
@@ -614,7 +624,12 @@ Signaling.Standalone.prototype.connect = function() {
 			this.signalingConnectionError.hideToast()
 			this.signalingConnectionError = null
 		}
-		this.reconnect()
+		if (this.socket) {
+			console.debug('Reconnecting socket as the connection was closed unexpected')
+			this.reconnect()
+		} else if (!this.reconnectTimer) {
+			console.debug('Not reconnecting because the socket was closed by disconnect')
+		}
 	}.bind(this)
 	this.socket.onmessage = function(event) {
 		let data = event.data
@@ -682,6 +697,10 @@ Signaling.Standalone.prototype.sendBye = function() {
 }
 
 Signaling.Standalone.prototype.disconnect = function() {
+	if (this.reconnectTimer) {
+		window.clearTimeout(this.reconnectTimer)
+		this.reconnectTimer = null
+	}
 	this.sendBye()
 	if (this.socket) {
 		this.socket.close()
@@ -690,7 +709,22 @@ Signaling.Standalone.prototype.disconnect = function() {
 	Signaling.Base.prototype.disconnect.apply(this, arguments)
 }
 
+Signaling.Standalone.prototype.prepareUnload = function() {
+	this.preparingUnload = true
+	window.clearTimeout(this.preparingUnloadTimeout)
+	this.preparingUnloadTimeout = window.setTimeout(() => {
+		this.preparingUnloadTimeout = null
+		// If the user didn't finish unloading in the end
+		// we allow reconnecting again
+		this.preparingUnload = false
+	}, 15000)
+}
+
 Signaling.Standalone.prototype.forceReconnect = function(newSession, flags) {
+	// Ensure that a forced reconnection will be executed if called between
+	// preparing the unload and assuming that the unload was not finished.
+	this.preparingUnload = false
+
 	if (flags !== undefined) {
 		this.currentCallFlags = flags
 	}

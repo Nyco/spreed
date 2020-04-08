@@ -155,6 +155,16 @@ async function signalingLeaveConversation(token) {
 }
 
 /**
+ * Pause reconnections to the signaling server
+ * We might be unloading the page soon
+ */
+function signalingPrepareUnload() {
+	if (signaling) {
+		signaling.prepareUnload()
+	}
+}
+
+/**
  * Immediately kill the signaling connection synchronously
  * This should be called only in the unload handler
  */
@@ -176,5 +186,6 @@ export {
 	signalingJoinCall,
 	signalingLeaveCall,
 	signalingLeaveConversation,
+	signalingPrepareUnload,
 	signalingKill,
 }
