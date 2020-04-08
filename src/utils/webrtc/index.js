@@ -28,6 +28,7 @@ import { PARTICIPANT } from '../../constants'
 import { EventBus } from '../../services/EventBus'
 
 let signaling = null
+let signalingToken = null
 let webRtc = null
 const callParticipantCollection = new CallParticipantCollection()
 const localCallParticipantModel = new LocalCallParticipantModel()
@@ -35,17 +36,25 @@ const localMediaModel = new LocalMediaModel()
 
 let pendingConnectSignaling = null
 
-async function connectSignaling() {
-	if (signaling) {
-		return
+async function connectSignaling(token) {
+	if (signalingToken === token) {
+		if (signaling) {
+			return
+		}
+
+		if (pendingConnectSignaling) {
+			return pendingConnectSignaling
+		}
+	} else if (signaling) {
+		// Changing signaling connection
+		signaling.disconnect()
+		signaling = null
 	}
 
-	if (pendingConnectSignaling) {
-		return pendingConnectSignaling
-	}
+	signalingToken = token
 
 	pendingConnectSignaling = new Promise((resolve, reject) => {
-		Signaling.loadSettings(null).then(() => {
+		Signaling.loadSettings(token).then(() => {
 			signaling = Signaling.createConnection()
 
 			EventBus.$emit('signalingConnectionEstablished')
@@ -59,8 +68,8 @@ async function connectSignaling() {
 	return pendingConnectSignaling
 }
 
-async function getSignaling() {
-	await connectSignaling()
+async function getSignaling(token) {
+	await connectSignaling(token)
 
 	return signaling
 }
@@ -106,7 +115,7 @@ function setupWebRtc() {
 }
 
 async function joinCall(token) {
-	await connectSignaling()
+	await connectSignaling(token)
 
 	setupWebRtc()
 

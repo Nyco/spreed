@@ -201,10 +201,6 @@ export default {
 			joinConversation(this.$route.params.token)
 		}
 
-		// FIXME Signaling should be done on conversation level, as the signaling information depends on it.
-		// FIXME This was just added as a quick hack because of timing
-		connectSignaling()
-
 		window.addEventListener('resize', this.onResize)
 		document.addEventListener('visibilitychange', this.changeWindowVisibility)
 

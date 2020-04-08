@@ -44,8 +44,7 @@ const joinCall = async function(token, flags) {
  */
 const leaveCall = async function(token) {
 	try {
-		const signaling = await getSignaling()
-
+		const signaling = await getSignaling(token)
 		await signaling.leaveCurrentCall()
 	} catch (error) {
 		console.debug('Error while leaving call: ', error)

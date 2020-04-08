@@ -23,7 +23,7 @@
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
 import { getSignaling } from '../utils/webrtc/index'
-import { EventBus } from '../services/EventBus'
+import { EventBus } from './EventBus'
 
 /**
  * Joins the current user to a conversation specified with
@@ -33,15 +33,12 @@ import { EventBus } from '../services/EventBus'
  */
 const joinConversation = async(token) => {
 	try {
-		const signaling = await getSignaling()
-
-		await signaling.joinRoom(token)
-
+		const response = await axios.post(generateOcsUrl('apps/spreed/api/v1', 2) + `room/${token}/participants/active`)
+		// FIXME Signaling should not be synchronous
+		const signaling = await getSignaling(token)
+		await signaling.joinRoom(token, response.data.ocs.data.sessionId)
 		EventBus.$emit('joinedConversation')
-
-		// FIXME Signaling should not handle joining a conversation
-		// const response = await axios.post(generateOcsUrl('apps/spreed/api/v1', 2) + `room/${token}/participants/active`)
-		// return response
+		return response
 	} catch (error) {
 		console.debug(error)
 	}
@@ -54,13 +51,12 @@ const joinConversation = async(token) => {
  */
 const leaveConversation = async function(token) {
 	try {
-		const signaling = await getSignaling()
 
+		const response = await axios.delete(generateOcsUrl('apps/spreed/api/v1', 2) + `room/${token}/participants/active`)
+		// FIXME Signaling should not be synchronous
+		const signaling = await getSignaling(token)
 		await signaling.leaveRoom(token)
-
-		// FIXME Signaling should not handle leaving a conversation
-		// const response = await axios.delete(generateOcsUrl('apps/spreed/api/v1', 2) + `room/${token}/participants/active`)
-		// return response
+		return response
 	} catch (error) {
 		console.debug(error)
 	}
