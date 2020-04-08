@@ -51,11 +51,11 @@ const joinConversation = async(token) => {
  */
 const leaveConversation = async function(token) {
 	try {
-
-		const response = await axios.delete(generateOcsUrl('apps/spreed/api/v1', 2) + `room/${token}/participants/active`)
 		// FIXME Signaling should not be synchronous
 		const signaling = await getSignaling(token)
 		await signaling.leaveRoom(token)
+
+		const response = await axios.delete(generateOcsUrl('apps/spreed/api/v1', 2) + `room/${token}/participants/active`)
 		return response
 	} catch (error) {
 		console.debug(error)
