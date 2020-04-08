@@ -50,10 +50,7 @@ import {
 	leaveConversationSync,
 } from './services/participantsService'
 import { PARTICIPANT } from './constants'
-import {
-	connectSignaling,
-	getSignalingSync,
-} from './utils/webrtc/index'
+import { getSignalingSync } from './utils/webrtc/index'
 import { emit } from '@nextcloud/event-bus'
 import browserCheck from './mixins/browserCheck'
 
