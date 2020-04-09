@@ -26,10 +26,7 @@
  *
  */
 
-import {
-	fetchSignalingSettings,
-	pullSignalingMessages,
-} from '../services/signalingService'
+import { pullSignalingMessages } from '../services/signalingService'
 import CancelableRequest from './cancelableRequest'
 import { EventBus } from '../services/EventBus'
 import axios from '@nextcloud/axios'
@@ -43,33 +40,22 @@ const Signaling = {
 	Base: {},
 	Internal: {},
 	Standalone: {},
-	settings: {},
-
-	/**
-	 * Loads the signaling settings.
-	 *
-	 * @param {string} token Conversation token to load the signaling settings for
-	 */
-	async loadSettings(token) {
-		this.settings = {}
-		const response = await fetchSignalingSettings(token)
-		this.settings = Object.assign({ token }, response.data.ocs.data)
-	},
 
 	/**
 	 * Creates a connection to the signaling server
+	 *
+	 * @param {Object} settings The signaling settings
 	 * @returns {Standalone|Internal}
 	 */
-	createConnection() {
-		if (!this.settings) {
-			console.error('Signaling settings are not yet loaded')
+	createConnection(settings) {
+		if (!settings) {
+			console.error('Signaling settings are not given')
 		}
 
-		const urls = this.settings.server
-		if (urls && urls.length) {
-			return new Signaling.Standalone(this.settings, urls)
+		if (settings.signalingMode !== 'internal') {
+			return new Signaling.Standalone(settings, settings.server)
 		} else {
-			return new Signaling.Internal(this.settings)
+			return new Signaling.Internal(settings)
 		}
 	},
 }
@@ -152,7 +138,7 @@ Signaling.Base.prototype.disconnect = function() {
 	this.currentCallFlags = null
 }
 
-Signaling.Base.prototype.prepareUnloading = function() {
+Signaling.Base.prototype.prepareUnload = function() {
 }
 
 Signaling.Base.prototype.hasFeature = function(feature) {
@@ -506,7 +492,7 @@ function Standalone(settings, urls) {
 	this.initialReconnectIntervalMs = 1000
 	this.maxReconnectIntervalMs = 16000
 	this.reconnectIntervalMs = this.initialReconnectIntervalMs
-	this.preparingUnloading = false
+	this.isPreparingUnload = false
 	this.joinedUsers = {}
 	this.rooms = []
 	this.connect()
@@ -521,7 +507,7 @@ Signaling.Standalone.prototype.reconnect = function() {
 		return
 	}
 
-	if (this.preparingUnloading) {
+	if (this.isPreparingUnload) {
 		console.debug('Not reconnecting as we are preparing unload')
 		return
 	}
@@ -695,13 +681,13 @@ Signaling.Standalone.prototype.disconnect = function() {
 	Signaling.Base.prototype.disconnect.apply(this, arguments)
 }
 
-Signaling.Standalone.prototype.prepareUnloading = function() {
-	this.preparingUnloading = true
+Signaling.Standalone.prototype.prepareUnload = function() {
+	this.isPreparingUnload = true
 	window.setTimeout(() => {
 		// If the user didn't finish unloading in the end
 		// we allow reconnecting again
-		this.preparingUnloading = false
-	}, 25000)
+		this.isPreparingUnload = false
+	}, 15000)
 }
 
 Signaling.Standalone.prototype.forceReconnect = function(newSession, flags) {

@@ -55,10 +55,11 @@ import {
 	leaveConversationSync,
 } from './services/participantsService'
 import {
-	getSignaling,
-	getSignalingSync,
+	signalingKill,
+	signalingPrepareUnload,
 } from './utils/webrtc/index'
 import browserCheck from './mixins/browserCheck'
+import { loadState } from '@nextcloud/initial-state'
 
 export default {
 
@@ -118,14 +119,16 @@ export default {
 	},
 
 	beforeMount() {
+		window.addEventListener('beforeunload', () => {
+			console.info('Stop potential reconnects on unload')
+			signalingPrepareUnload()
+		})
+
 		window.addEventListener('unload', () => {
 			if (this.token) {
 				// We have to do this synchronously, because in unload and beforeunload
 				// Promises, async and await are prohibited.
-				const signaling = getSignalingSync()
-				if (signaling) {
-					signaling.disconnect()
-				}
+				signalingKill()
 				leaveConversationSync(this.token)
 			}
 		})
@@ -156,8 +159,7 @@ export default {
 			// used), although that should not be a problem given that only the
 			// "inCall" flag (which is locally updated when joining and leaving
 			// a call) is currently used.
-			const signaling = await getSignaling()
-			if (signaling.url) {
+			if (loadState('talk', 'signaling_mode') !== 'internal') {
 				EventBus.$on('shouldRefreshConversations', this.fetchCurrentConversation)
 			} else {
 				// The "shouldRefreshConversations" event is triggered only when

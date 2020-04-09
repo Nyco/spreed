@@ -26,55 +26,60 @@ import LocalCallParticipantModel from './models/LocalCallParticipantModel'
 import LocalMediaModel from './models/LocalMediaModel'
 import { PARTICIPANT } from '../../constants'
 import { EventBus } from '../../services/EventBus'
+import { fetchSignalingSettings } from '../../services/signalingService'
 
 let signaling = null
 let signalingToken = null
 let webRtc = null
+let settings = null
+let currentSignalingServer = null
 const callParticipantCollection = new CallParticipantCollection()
 const localCallParticipantModel = new LocalCallParticipantModel()
 const localMediaModel = new LocalMediaModel()
 
 let pendingConnectSignaling = null
 
-async function connectSignaling(token) {
-	if (signalingToken === token) {
-		if (signaling) {
-			return
-		}
+async function loadSignalingSettings(token) {
+	const response = await fetchSignalingSettings(token)
+	settings = response.data.ocs.data
+}
 
-		if (pendingConnectSignaling) {
-			return pendingConnectSignaling
-		}
-	} else if (signaling) {
-		// Changing signaling connection
-		signaling.disconnect()
-		signaling = null
+async function connectSignaling() {
+	if (signaling) {
+		return
 	}
 
-	signalingToken = token
+	if (pendingConnectSignaling) {
+		return pendingConnectSignaling
+	}
 
 	pendingConnectSignaling = new Promise((resolve, reject) => {
-		Signaling.loadSettings(token).then(() => {
-			signaling = Signaling.createConnection()
-
-			EventBus.$emit('signalingConnectionEstablished')
-
-			pendingConnectSignaling = null
-
-			resolve()
-		})
+		signaling = Signaling.createConnection(settings)
+		EventBus.$emit('signalingConnectionEstablished')
+		pendingConnectSignaling = null
+		resolve()
 	})
 
 	return pendingConnectSignaling
 }
 
 async function getSignaling(token) {
-	await connectSignaling(token)
+	if (signalingToken !== token) {
+		await loadSignalingSettings(token)
 
-	return signaling
-}
+		if (currentSignalingServer !== settings.url && signaling) {
+			signaling.disconnect()
+			signaling = null
+		}
 
-function getSignalingSync() {
+		signalingToken = token
+		currentSignalingServer = settings.url
+
+		if (!signaling) {
+			await connectSignaling(token)
+		}
+	}
+
 	return signaling
 }
 
@@ -114,7 +119,25 @@ function setupWebRtc() {
 	})
 }
 
-async function joinCall(token) {
+/**
+ * Join the given conversation on the respective signaling server with the given sessionId
+ *
+ * @param {string} token Conversation to join
+ * @param {string} sessionId Session id to join with
+ * @returns {Promise<void>}
+ */
+async function signalingJoinConversation(token, sessionId) {
+	await getSignaling(token)
+	await signaling.joinRoom(token, sessionId)
+}
+
+/**
+ * Join the call of the given conversation
+ *
+ * @param {string} token Conversation to join the call
+ * @returns {Promise<void>}
+ */
+async function signalingJoinCall(token) {
 	await connectSignaling(token)
 
 	setupWebRtc()
@@ -128,12 +151,57 @@ async function joinCall(token) {
 	})
 }
 
+/**
+ * Leave the call of the given conversation
+ *
+ * @param {string} token Conversation to leave the call
+ * @returns {Promise<void>}
+ */
+async function signalingLeaveCall(token) {
+	await getSignaling(token)
+	await signaling.leaveCurrentCall()
+}
+
+/**
+ * Leave the given conversation on the respective signaling server
+ *
+ * @param {string} token Conversation to leave
+ * @returns {Promise<void>}
+ */
+async function signalingLeaveConversation(token) {
+	await getSignaling(token)
+	await signaling.leaveRoom(token)
+}
+
+/**
+ * Pause reconnections to the signaling server
+ * We might be unloading the page soon
+ */
+function signalingPrepareUnload() {
+	if (signaling) {
+		signaling.prepareUnload()
+	}
+}
+
+/**
+ * Immediately kill the signaling connection synchronously
+ * This should be called only in the unload handler
+ */
+function signalingKill() {
+	if (signaling) {
+		signaling.disconnect()
+	}
+}
+
 export {
 	callParticipantCollection,
 	localCallParticipantModel,
 	localMediaModel,
-	connectSignaling,
-	getSignaling,
-	getSignalingSync,
-	joinCall,
+
+	signalingJoinConversation,
+	signalingJoinCall,
+	signalingLeaveCall,
+	signalingLeaveConversation,
+	signalingKill,
+	signalingPrepareUnload,
 }
