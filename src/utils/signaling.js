@@ -186,18 +186,18 @@ Signaling.Base.prototype.leaveCurrentCall = function() {
 
 Signaling.Base.prototype.joinRoom = function(token, sessionId) {
 	return new Promise((resolve, reject) => {
-				console.debug('Joined')
-				this.currentRoomToken = token
-				this._trigger('joinRoom', [token])
-				resolve()
-				if (this.currentCallToken === token) {
-					// We were in this call before, join again.
-					this.joinCall(token, this.currentCallFlags)
-				} else {
-					this.currentCallToken = null
-					this.currentCallFlags = null
-				}
-				this._joinRoomSuccess(token, sessionId)
+		console.debug('Joined')
+		this.currentRoomToken = token
+		this._trigger('joinRoom', [token])
+		resolve()
+		if (this.currentCallToken === token) {
+			// We were in this call before, join again.
+			this.joinCall(token, this.currentCallFlags)
+		} else {
+			this.currentCallToken = null
+			this.currentCallFlags = null
+		}
+		this._joinRoomSuccess(token, sessionId)
 	})
 }
 
@@ -212,12 +212,12 @@ Signaling.Base.prototype.leaveRoom = function(token) {
 			this._doLeaveRoom(token)
 
 			return new Promise((resolve, reject) => {
-						this._leaveRoomSuccess(token)
-						resolve()
-						// We left the current room.
-						if (token === this.currentRoomToken) {
-							this.currentRoomToken = null
-						}
+				this._leaveRoomSuccess(token)
+				resolve()
+				// We left the current room.
+				if (token === this.currentRoomToken) {
+					this.currentRoomToken = null
+				}
 			})
 		})
 }

@@ -52,7 +52,7 @@ import {
 import { PARTICIPANT } from './constants'
 import {
 	signalingPrepareUnload,
-	signalingKill
+	signalingKill,
 } from './utils/webrtc/index'
 import { emit } from '@nextcloud/event-bus'
 import browserCheck from './mixins/browserCheck'
