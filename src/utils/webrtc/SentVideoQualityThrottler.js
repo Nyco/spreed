@@ -267,6 +267,12 @@ SentVideoQualityThrottler.prototype = {
 		if (quality === this.QUALITY.HIGH) {
 			return {
 				video: true,
+				// The frame rate needs to be explicitly set; otherwise the
+				// browser may keep the previous stream when changing to a laxer
+				// constraint.
+				frameRate: {
+					max: 30,
+				},
 			}
 		}
 
@@ -277,6 +283,9 @@ SentVideoQualityThrottler.prototype = {
 				},
 				height: {
 					max: 480,
+				},
+				frameRate: {
+					max: 24,
 				},
 			}
 		}
