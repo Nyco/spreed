@@ -81,6 +81,32 @@ SentVideoQualityThrottler.prototype = {
 		HIGH: 4,
 	},
 
+	setAvailableVideosThreshold: function(availableVideosThreshold) {
+		this._validateThreshold(availableVideosThreshold)
+
+		this._availableVideosThreshold = availableVideosThreshold
+
+		this._adjustVideoQualityIfNeeded()
+	},
+
+	setAvailableAudiosThreshold: function(availableAudiosThreshold) {
+		this._availableAudiosThreshold = availableAudiosThreshold
+
+		this._adjustVideoQualityIfNeeded()
+	},
+
+	_validateThreshold: function(threshold) {
+		for (let i = this.QUALITY.THUMBNAIL; i <= this.QUALITY.HIGH; i++) {
+			if (!(i in threshold)) {
+				throw new Error('No threshold for quality ' + i)
+			}
+
+			if (i > this.QUALITY.THUMBNAIL && threshold[i] > threshold[i - 1]) {
+				console.warn('Threshold for quality ' + i + ' (' + threshold[i] + ') > threshold for quality ' + (i - 1) + ' (' + threshold[i - 1] + '), it will be ignored')
+			}
+		}
+	},
+
 	destroy: function() {
 		this._localMediaModel.off('change:videoAvailable', this._handleLocalVideoAvailableChangeBound)
 
