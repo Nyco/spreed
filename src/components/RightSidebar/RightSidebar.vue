@@ -130,12 +130,13 @@
 				:name="conversation.displayName" />
 		</AppSidebarTab>
 		<AppSidebarTab
-			v-if="!getUserId"
+			v-if="!getUserId || isInCall"
 			id="settings"
 			:order="4"
 			:name="t('spreed', 'Settings')"
 			icon="icon-settings">
-			<SetGuestUsername />
+			<SetGuestUsername v-if="!getUserId" />
+			<LocalVideoQualitySettings v-if="isInCall" />
 		</AppSidebarTab>
 	</AppSidebar>
 </template>
@@ -152,6 +153,7 @@ import ChatView from '../ChatView'
 import { CollectionList } from 'nextcloud-vue-collections'
 import { CONVERSATION, WEBINAR, PARTICIPANT } from '../../constants'
 import ParticipantsTab from './Participants/ParticipantsTab'
+import LocalVideoQualitySettings from '../CallView/LocalVideoQualitySettings'
 import {
 	addToFavorites,
 	removeFromFavorites,
@@ -174,6 +176,7 @@ export default {
 		AppSidebarTab,
 		ChatView,
 		CollectionList,
+		LocalVideoQualitySettings,
 		ParticipantsTab,
 		SetGuestUsername,
 	},
@@ -336,6 +339,23 @@ export default {
 			} else {
 				return this.conversation.displayName
 			}
+		},
+
+		participant() {
+			const participantIndex = this.$store.getters.getParticipantIndex(this.token, this.$store.getters.getParticipantIdentifier())
+			if (participantIndex !== -1) {
+				console.debug('Current participant found')
+				return this.$store.getters.getParticipant(this.token, participantIndex)
+			}
+
+			console.debug('Current participant not found')
+			return {
+				inCall: PARTICIPANT.CALL_FLAG.DISCONNECTED,
+			}
+		},
+
+		isInCall() {
+			return this.participant.inCall !== PARTICIPANT.CALL_FLAG.DISCONNECTED
 		},
 	},
 

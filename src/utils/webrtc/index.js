@@ -35,6 +35,10 @@ const localCallParticipantModel = new LocalCallParticipantModel()
 const localMediaModel = new LocalMediaModel()
 let sentVideoQualityThrottler = null
 
+function getSentVideoQualityThrottler() {
+	return sentVideoQualityThrottler
+}
+
 let pendingConnectSignaling = null
 
 async function connectSignaling() {
@@ -175,6 +179,8 @@ export {
 	callParticipantCollection,
 	localCallParticipantModel,
 	localMediaModel,
+
+	getSentVideoQualityThrottler,
 
 	connectSignaling,
 	getSignaling,
